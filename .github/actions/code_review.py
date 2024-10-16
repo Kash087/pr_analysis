@@ -98,6 +98,9 @@ def get_changed_files(pr):
 
 
 
+
+
+
 def send_to_openai(files):
     reviews = []
 
@@ -128,6 +131,7 @@ def send_to_openai(files):
 
 
     return reviews
+
 
 def post_comment(pr, comment):
     """
@@ -219,7 +223,9 @@ def main():
     """
     # If running locally, provide your own repository and PR data
     repository_name = input("Provide a repo name : username/repo_name -> ")  # Replace with your repository, e.g., 'openai/gpt'
+
     pull_request_number = int(input("Provide pr req no. : "))  # Replace with the pull request number you want to review
+
 
     # Instantiate the Github object using the Github token and get the pull request object
     g = Github(os.getenv('GITHUB_TOKEN'))
