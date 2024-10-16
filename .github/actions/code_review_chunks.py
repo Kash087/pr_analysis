@@ -233,7 +233,7 @@ def main():
     """
     # If running locally, provide your own repository and PR data
     repository_name = input("Provide a repo name : username/repo_name -> ")  # Replace with your repository, e.g., 'openai/gpt'
-    pull_request_number = 2  # Replace with the pull request number you want to review
+    pull_request_number = int(input("Provide pull req no. : "))  # Replace with the pull request number you want to review
 
     # Instantiate the Github object using the Github token and get the pull request object
     g = Github(os.getenv('GITHUB_TOKEN'))
