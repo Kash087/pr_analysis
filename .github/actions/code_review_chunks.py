@@ -72,6 +72,8 @@ def get_changed_files(pr):
 
     # Create a set of all unique files from both branches
     all_files = set(base_files).union(set(pr_files))
+    all_files = list(all_files)
+    all_files.sort()
 
     # Initialize an empty dictionary to store file contents and diffs
     files = {}
@@ -87,12 +89,13 @@ def get_changed_files(pr):
             pr_content = repo.git.show(f"{head_ref}:{file_path}")
             codebase[file_path] = base_content
 
-            if diff:  # Only store files with differences
+            if diff and file_path.endswith('.py'):  # Only store files with differences
                 files[file_path] = (base_content, pr_content, diff)
         except Exception as e:
             print(f"Failed to process {file_path}: {e}")
 
     return files
+
 
 Token_limit = 4000
 
@@ -107,17 +110,17 @@ def send_to_openai(files):
 
             for base_chunk , pr_chunk in zip(base_chunks,pr_chunks):
                 content = (
-                          f"You are responsible to extract that part of code that is different and changed in pr files with respect to base files"
-                          f"Please find the function or variable or class or any data structure etc that are affected by that part of code.\n"
-                          f"please check each and every line of code that is different"
-                          f"output must be in this format -> elements' name only"
-                          f"Do not provide the code, explanations, or any other details"
-                          f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
-                          f"File: {file_path}\n"
-                          f" base files: {base_chunk}"
-                          f"pr files: {pr_chunk}"
-                          )
-
+            f"You are responsible to extract that part of code (function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
+            f"Please find all the functions and variables and classes and any data structures etc that are affected by that part of code.\n"
+            f"please check each and every line of code that is different"
+            f"output must be in this format -> elements' name only"
+            f"Do not provide the code, explanations, or any other details"
+            f"Do not consider print statements provide the function under which print statement differs"
+            f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
+            f"File: {file_path}\n"
+            f" base files: {base_content}"
+            f"pr files: {pr_content}"
+        )
 
 
                 message = openai.ChatCompletion.create(
