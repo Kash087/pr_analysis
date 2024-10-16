@@ -132,16 +132,17 @@ def send_to_openai(files):
                 reviews.extend(lines)
         else:
             content = (
-                f"You are responsible to extract that part of code that is different and changed in pr files with respect to base files"
-                f"Please find the function or variable or class or any data structure etc that are affected by that part of code.\n"
-                f"please check each and every line of code that is different"
-                f"output must be in this format -> elements' name only"
-                f"Do not provide the code, explanations, or any other details"
-                f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
-                f"File: {file_path}\n"
-                f" base files: {base_content}"
-                f"pr files: {pr_content}"
-            )
+            f"You are responsible to extract that part of code (function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
+            f"Please find all the functions and variables and classes and any data structures etc that are affected by that part of code.\n"
+            f"please check each and every line of code that is different"
+            f"output must be in this format -> elements' name only"
+            f"Do not provide the code, explanations, or any other details"
+            f"Do not consider print statements provide the function under which print statement differs"
+            f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
+            f"File: {file_path}\n"
+            f" base files: {base_content}"
+            f"pr files: {pr_content}"
+        )
 
             message = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
