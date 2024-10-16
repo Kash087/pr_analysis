@@ -94,33 +94,60 @@ def get_changed_files(pr):
 
     return files
 
-
+Token_limit = 4000
 
 def send_to_openai(files):
     reviews = []
 
     for file_path, (base_content, pr_content, diff) in files.items():
-        content = (
-            f"You are responsible to extract that part of code that is different and changed in pr files with respect to base files"
-            f"Please find the function or variable or class or any data structure etc that are affected by that part of code.\n"
-            f"please check each and every line of code that is different"
-            f"output must be in this format -> elements' name only"
-            f"Do not provide the code, explanations, or any other details"
-            f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
-            f"File: {file_path}\n"
-            f" base files: {base_content}"
-            f"pr files: {pr_content}"
-        )
+        if count_tokens(base_content) + count_tokens(pr_content) > Token_limit:
+            base_chunks = textwrap.wrap(base_content, width=int(Token_limit / 2))
+            pr_chunks = textwrap.wrap(base_content, width=int(Token_limit/ 2))  # Adjust chunk size
+
+
+            for base_chunk , pr_chunk in zip(base_chunks,pr_chunks):
+                content = (
+                          f"You are responsible to extract that part of code that is different and changed in pr files with respect to base files"
+                          f"Please find the function or variable or class or any data structure etc that are affected by that part of code.\n"
+                          f"please check each and every line of code that is different"
+                          f"output must be in this format -> elements' name only"
+                          f"Do not provide the code, explanations, or any other details"
+                          f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
+                          f"File: {file_path}\n"
+                          f" base files: {base_chunk}"
+                          f"pr files: {pr_chunk}"
+                          )
 
 
 
-        message = openai.ChatCompletion.create(
+                message = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": content}],
                 )
-        response_content = message['choices'][0]['message']['content']
-        lines = [line.strip() for line in response_content.splitlines() if line.strip()]
-        reviews.extend(lines) # Store under single key
+                response_content = message['choices'][0]['message']['content']
+                lines = [line.strip() for line in response_content.splitlines() if line.strip()]
+                reviews.extend(lines)
+        else:
+            content = (
+                f"You are responsible to extract that part of code that is different and changed in pr files with respect to base files"
+                f"Please find the function or variable or class or any data structure etc that are affected by that part of code.\n"
+                f"please check each and every line of code that is different"
+                f"output must be in this format -> elements' name only"
+                f"Do not provide the code, explanations, or any other details"
+                f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
+                f"File: {file_path}\n"
+                f" base files: {base_content}"
+                f"pr files: {pr_content}"
+            )
+
+            message = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": content}],
+            )
+            response_content = message['choices'][0]['message']['content']
+            lines = [line.strip() for line in response_content.splitlines() if line.strip()]
+            reviews.extend(lines)
+
 
 
     return reviews
