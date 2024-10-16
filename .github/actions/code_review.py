@@ -89,7 +89,7 @@ def get_changed_files(pr):
             pr_content = repo.git.show(f"{head_ref}:{file_path}")
             codebase[file_path] = base_content
 
-            if diff and file_path.endswith('.py'):  # Only store files with differences
+            if diff and "." in file_path:  # Only store files with differences
                 files[file_path] = (base_content, pr_content, diff)
         except Exception as e:
             print(f"Failed to process {file_path}: {e}")
