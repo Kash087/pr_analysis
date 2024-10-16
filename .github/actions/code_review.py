@@ -72,6 +72,8 @@ def get_changed_files(pr):
 
     # Create a set of all unique files from both branches
     all_files = set(base_files).union(set(pr_files))
+    all_files = list(all_files)
+    all_files.sort()
 
     # Initialize an empty dictionary to store file contents and diffs
     files = {}
@@ -87,7 +89,7 @@ def get_changed_files(pr):
             pr_content = repo.git.show(f"{head_ref}:{file_path}")
             codebase[file_path] = base_content
 
-            if diff:  # Only store files with differences
+            if diff and "." in file_path:  # Only store files with differences
                 files[file_path] = (base_content, pr_content, diff)
         except Exception as e:
             print(f"Failed to process {file_path}: {e}")
@@ -101,11 +103,12 @@ def send_to_openai(files):
 
     for file_path, (base_content, pr_content, diff) in files.items():
         content = (
-            f"You are responsible to extract that part of code that is different and changed in pr files with respect to base files"
-            f"Please find the function or variable or class or any data structure etc that are affected by that part of code.\n"
+            f"You are responsible to extract that part of code (function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
+            f"Please find all the functions and variables and classes and any data structures etc that are affected by that part of code.\n"
             f"please check each and every line of code that is different"
             f"output must be in this format -> elements' name only"
             f"Do not provide the code, explanations, or any other details"
+            f"Do not consider print statements provide the function under which print statement differs"
             f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
             f"File: {file_path}\n"
             f" base files: {base_content}"
@@ -117,6 +120,7 @@ def send_to_openai(files):
         message = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": content}],
+            temperature=0.2,
                 )
         response_content = message['choices'][0]['message']['content']
         lines = [line.strip() for line in response_content.splitlines() if line.strip()]
@@ -170,6 +174,7 @@ def find_usages_in_codebase(changed_lines, codebase):
                 message = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": content}],
+
                 )
                 response_content = message['choices'][0]['message']['content']
 
@@ -185,17 +190,25 @@ def find_usages_in_codebase(changed_lines, codebase):
 
 
 def find_in_codebase_using_regex(changes, code_base):
-    # Create a regex pattern from the changed lines
+    # Create a regex pattern from the list of changes
     pattern = re.compile(r'\b(?:' + '|'.join(re.escape(term.strip()) for term in changes if term.strip()) + r')\b')
-    print(pattern)
+
     matching_lines = {}
+
+    # Iterate over each file in the code base
     for file_path, (base_content, pr_content, diff) in code_base.items():
+        # Only search through Python files with a .py extension
+
+
+        # Split the base content into lines and search for patterns
         for line_num, line in enumerate(base_content.splitlines(), 1):
-            if pattern.search(line):  # Search for the pattern in the line
+            if pattern.search(line):  # Check if the pattern matches any line
                 if file_path not in matching_lines:
                     matching_lines[file_path] = []
-                matching_lines[file_path].append((line_num, line.strip()))  # Store line number and content
+                matching_lines[file_path].append((line_num, line.strip()))  # Store the matching line with its number
+
     return matching_lines
+
 
 def main():
     """
@@ -206,7 +219,7 @@ def main():
     """
     # If running locally, provide your own repository and PR data
     repository_name = input("Provide a repo name : username/repo_name -> ")  # Replace with your repository, e.g., 'openai/gpt'
-    pull_request_number = 2  # Replace with the pull request number you want to review
+    pull_request_number = int(input("Provide pr req no. : "))  # Replace with the pull request number you want to review
 
     # Instantiate the Github object using the Github token and get the pull request object
     g = Github(os.getenv('GITHUB_TOKEN'))
