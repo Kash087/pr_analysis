@@ -114,7 +114,7 @@ def send_to_openai(files):
 
             for base_chunk , pr_chunk in zip(base_chunks,pr_chunks):
                 content = (
-<<<<<<< HEAD
+
                     f"You are responsible to extract that part of code (user-defined function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
                     f"Please find all the user-defined functions and variables and classes and any data structures etc that are affected by that part of code.\n"
                     f"please check each and every line of code that is different"
@@ -128,19 +128,6 @@ def send_to_openai(files):
                     f"pr files: {pr_chunk}"
                 )
 
-=======
-            f"You are responsible to extract that part of code (function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
-            f"Please find all the functions and variables and classes and any data structures etc that are affected by that part of code.\n"
-            f"please check each and every line of code that is different"
-            f"output must be in this format -> elements' name only"
-            f"Do not provide the code, explanations, or any other details"
-            f"Do not consider print statements provide the function under which print statement differs"
-            f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
-            f"File: {file_path}\n"
-            f" base files: {base_content}"
-            f"pr files: {pr_content}"
-        )
->>>>>>> origin/with_chunks
 
 
                 message = openai.ChatCompletion.create(
@@ -153,7 +140,7 @@ def send_to_openai(files):
                 reviews.extend(lines)
         else:
             content = (
-<<<<<<< HEAD
+
                 f"You are responsible to extract that part of code (user-defined function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
                     f"Please find all the user-defined functions and variables and classes and any data structures etc that are affected by that part of code.\n"
                     f"please check each and every line of code that is different"
@@ -166,19 +153,7 @@ def send_to_openai(files):
                 f" base files: {base_content}"
                 f"pr files: {pr_content}"
             )
-=======
-            f"You are responsible to extract that part of code (function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
-            f"Please find all the functions and variables and classes and any data structures etc that are affected by that part of code.\n"
-            f"please check each and every line of code that is different"
-            f"output must be in this format -> elements' name only"
-            f"Do not provide the code, explanations, or any other details"
-            f"Do not consider print statements provide the function under which print statement differs"
-            f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
-            f"File: {file_path}\n"
-            f" base files: {base_content}"
-            f"pr files: {pr_content}"
-        )
->>>>>>> origin/with_chunks
+
 
             message = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
@@ -290,7 +265,7 @@ def main():
     2. Sending those files to OpenAI for review
     3. Posting the review as a comment on the PR
     """
-<<<<<<< HEAD
+
     repository_name = input("Provide a repo name (username/repo_name or username/project/repo): ")
 
     pull_request_number = int(input("Provide PR req no.: "))
@@ -302,11 +277,7 @@ def main():
 
     owner, repo_name = repo_parts
     full_repo_name = f"{owner}/{repo_name}"
-=======
-    # If running locally, provide your own repository and PR data
-    repository_name = input("Provide a repo name : username/repo_name -> ")  # Replace with your repository, e.g., 'openai/gpt'
-    pull_request_number = int(input("Provide pull req no. : "))  # Replace with the pull request number you want to review
->>>>>>> origin/with_chunks
+
 
     g = Github(os.getenv('GITHUB_TOKEN'))
 
