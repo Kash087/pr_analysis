@@ -214,6 +214,17 @@ def find_in_codebase_using_regex(changes, code_base):
     return matching_lines
 
 
+def validate_repository_name(repository_name):
+    # Ensure the format is 'owner/repo_name'
+    parts = repository_name.split('/')
+    if len(parts) == 2:
+        return parts[0], parts[1]
+    elif len(parts) == 3:
+        return parts[1], parts[2]  # Handle cases like 'owner/project/repo'
+    else:
+        return None
+
+
 def main():
     """
     The main function orchestrates the operations of:
@@ -221,55 +232,44 @@ def main():
     2. Sending those files to OpenAI for review
     3. Posting the review as a comment on the PR
     """
-    # If running locally, provide your own repository and PR data
-    repository_name = input("Provide a repo name : username/repo_name -> ")  # Replace with your repository, e.g., 'openai/gpt'
+    repository_name = input("Provide a repo name (username/repo_name or username/project/repo): ")  
 
-    pull_request_number = int(input("Provide pr req no. : "))  # Replace with the pull request number you want to review
+    pull_request_number = int(input("Provide PR req no.: "))  
 
+    repo_parts = validate_repository_name(repository_name)
+    if not repo_parts:
+        print("Invalid repository name format. It should be 'owner/repo_name' or 'owner/project/repo'.")
+        return
 
-    # Instantiate the Github object using the Github token and get the pull request object
+    owner, repo_name = repo_parts
+    full_repo_name = f"{owner}/{repo_name}"
+
     g = Github(os.getenv('GITHUB_TOKEN'))
-    repo = g.get_repo(repository_name)
-    pr = repo.get_pull(pull_request_number)
 
-    # Get the changed files in the pull request
-    files= get_changed_files(pr)
+    try:
+        repo = g.get_repo(full_repo_name)
+        pr = repo.get_pull(pull_request_number)
+    except github.GithubException as e:
+        print(f"Failed to fetch repository or pull request: {e}")
+        return
 
-    # Check if files were returned
+    files = get_changed_files(pr)
+
     if not files:
         print("No changed files found in the pull request.")
         return
 
-    # Send the files to OpenAI for review
     changed_lines = send_to_openai(files)
-    print("change lines:","\n",changed_lines)
+    print("Changed lines:\n", changed_lines)
 
-    #
-    #changes = find_usages_in_codebase(changed_lines, files)
-    changes = find_in_codebase_using_regex(changed_lines,files)
+    changes = find_in_codebase_using_regex(changed_lines, files)
     green_color = "\033[92m"
     reset_color = "\033[0m"
 
     for file in changes:
         print(f"{green_color}***********************{file}**********************{reset_color}")
         for line_num, match in changes[file]:
-               print(f"{green_color}Line {line_num}: {match}{reset_color}")
-
-    #     print(f"{green_color}***********************{file}**********************{reset_color}")
-    #
-    #     for change in changes[file]:
-    #             parts = change.split(':')
-    #             if len(parts) >= 2:  # Ensure there are at least two parts after splitting by ':'
-    #                 line_no = parts[0].strip()  # Extract line number
-    #                 code = parts[1].strip()  # Extract the respective code
-    #                 print(f"{green_color}{line_no}: {code}{reset_color}")
-    #             else:
-    #                 print(f"{green_color}{change}{reset_color}")
-
-
-
-            # Post the review as a comment on the pull request
-
+            print(f"{green_color}Line {line_num}: {match}{reset_color}")
 
 
 if __name__ == "__main__":
