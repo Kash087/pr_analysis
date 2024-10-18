@@ -81,32 +81,39 @@ def get_changed_files(pr):
 
     # Initialize an empty dictionary to store file contents and diffs
     files = {}
-    codebase = {}
+
     for file_path in all_files:
         try:
             # Get the diff between the base and PR branch for the file
-            diff = repo.git.diff(f"{base_ref}:{file_path}", f"{head_ref}:{file_path}")
+            #diff = repo.git.diff(f"{base_ref}:{file_path}", f"{head_ref}:{file_path}")
 
 
             # Get the content of the base and PR versions of the file
             base_content = repo.git.show(f"{base_ref}:{file_path}")
             pr_content = repo.git.show(f"{head_ref}:{file_path}")
-            codebase[file_path] = base_content
 
-            if diff and "." in file_path:  # Only store files with differences
-                files[file_path] = (base_content, pr_content, diff)
+
+            if "." in file_path[len(file_path)//2:] and file_path[0]!="." :
+                if ".json" in file_path:
+                    if file_path == "package.json":
+                        files[file_path] = (base_content, pr_content)
+                    else:
+                        continue
+                else:
+                    files[file_path] = (base_content, pr_content)
         except Exception as e:
             print(f"Failed to process {file_path}: {e}")
 
     return files
 
 
-Token_limit = 4000
+Token_limit = 12000
 
 def send_to_openai(files):
     reviews = []
 
-    for file_path, (base_content, pr_content, diff) in files.items():
+    for file_path, (base_content, pr_content) in files.items():
+
         if count_tokens(base_content) + count_tokens(pr_content) > Token_limit:
             base_chunks = textwrap.wrap(base_content, width=int(Token_limit / 2))
             pr_chunks = textwrap.wrap(pr_content, width=int(Token_limit/ 2))  # Adjust chunk size
@@ -118,10 +125,11 @@ def send_to_openai(files):
                     f"You are responsible to extract that part of code (user-defined function , variable , class, data structure) from the pr files whose definition is different and changed in pr files with respect to base files"
                     f"Please find all the user-defined functions and variables and classes and any data structures etc that are affected by that part of code.\n"
                     f"please check each and every line of code that is different"
-                    f"output must be in this format -> elements' name only"
+                    f"output must be in this format -> elements' name only"  
                     f"Do not provide the code, explanations, or any other details"
-                    f"do not consider inbuilt functions"
-                    f"Do not write print statements provide the function under which print statement differs"
+                    f"do not consider in-built functions"
+                   
+                    
                     f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
                     f"File: {file_path}\n"
                     f" base files: {base_chunk}"
@@ -133,7 +141,7 @@ def send_to_openai(files):
                 message = openai.ChatCompletion.create(
                     model="gpt-3.5-turbo",
                     messages=[{"role": "user", "content": content}],
-                    temperature = 0.3,
+                    temperature = 0.2,
                 )
                 response_content = message['choices'][0]['message']['content']
                 lines = [line.strip() for line in response_content.splitlines() if line.strip()]
@@ -146,9 +154,9 @@ def send_to_openai(files):
                     f"please check each and every line of code that is different"
                     f"output must be in this format -> elements' name only"
                     f"Do not provide the code, explanations, or any other details"
-                    f"do not consider inbuilt functions"
-                    f"Do not write print statements provide the function under which print statement differs "
-                    f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
+                    f"do not consider in-built functions"
+                 
+                f"do not write added , updated, modified, function, variable ,etc just find the elements' name that are affected or changed"
                 f"File: {file_path}\n"
                 f" base files: {base_content}"
                 f"pr files: {pr_content}"
@@ -158,7 +166,7 @@ def send_to_openai(files):
             message = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 messages=[{"role": "user", "content": content}],
-                temperature = 0.3,
+                temperature = 0.2,
             )
             response_content = message['choices'][0]['message']['content']
             lines = [line.strip() for line in response_content.splitlines() if line.strip()]
@@ -234,7 +242,7 @@ def find_in_codebase_using_regex(changes, code_base):
     matching_lines = {}
 
     # Iterate over each file in the code base
-    for file_path, (base_content, pr_content, diff) in code_base.items():
+    for file_path, (base_content, pr_content) in code_base.items():
         # Only search through Python files with a .py extension
 
 
@@ -296,10 +304,16 @@ def main():
         return
 
     changed_lines = send_to_openai(files)
-    print("Changed lines:\n", changed_lines)
-    changed_lines = list(set(changed_lines))
 
-    changes = find_in_codebase_using_regex(changed_lines, files)
+    changed_lines = list(set(changed_lines))
+    lines = []
+    for change in changed_lines:
+        if "no change" not in change.lower() and "from" not in change and "none" not in change and "identical" not in change and "same" not in change:
+            lines.append(change)
+    lines.sort()
+    print("Changed lines:\n", lines)
+
+    changes = find_in_codebase_using_regex(lines, files)
     green_color = "\033[92m"
     reset_color = "\033[0m"
 
